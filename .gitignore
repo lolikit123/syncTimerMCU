@@ -1,0 +1,58 @@
+# Build directories
+**/build/
+cmake-build-*/
+
+# CMake / Ninja generated
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+build.ninja
+rules.ninja
+compile_commands.json
+CTestTestfile.cmake
+Testing/
+install_manifest.txt
+
+# Compiler/linker artifacts
+*.o
+*.obj
+*.d
+*.a
+*.su
+
+# Firmware outputs
+*.elf
+*.bin
+*.hex
+*.map
+*.list
+*.lst
+*.srec
+
+# ESP-IDF local/generated
+MCUMaster/sdkconfig.old
+MCUMaster/sdkconfig.ci
+MCUMaster/flasher_args.json
+MCUMaster/partition_table/
+MCUMaster/managed_components/
+MCUMaster/sdkconfig
+
+# libopencm3 generated files (poza build/)
+stm32/third_party/libopencm3/lib/**/*.d
+stm32/third_party/libopencm3/lib/**/*.a
+
+# Logs and temp
+*.log
+*.tmp
+*.temp
+
+# IDE / editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS junk
+.DS_Store
+Thumbs.db
