@@ -106,3 +106,4 @@
 | 0x04 | SEQ_ERROR | seq_id/ack_seq broken order |
 | 0x05 | BUSY | local queue/buffer full |
 | 0x06 | STATE_ERROR | msg not allowed in current state |
+
