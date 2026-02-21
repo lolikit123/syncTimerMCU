@@ -14,14 +14,17 @@ on:
 
 jobs:
   hil:
-    runs-on: [self-hosted, linux, stm32-hil]
+    runs-on: [self-hosted, Linux, stm32-hil]
     steps:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
       
       - name: Pythondeps
-        run: python3 -m pip install --user pyserial
+        run: |
+          python3 -m venv .venv
+          .venv/bin/python -m pip install --upgrade pip
+          .venv/bin/python -m pip install pyserial
       
       - name: Build debug test
         run: ./scripts/build_debug_tests.sh
@@ -31,6 +34,6 @@ jobs:
 
       - name: UART connect
         run: |
-          python3 scripts/hil_check_timebase.py \
+          .venv/bin/python scripts/hil_check_timebase.py \
             --port "${{ github.event.inputs.uart_port }}" \
             --duration "${{ github.event.inputs.duration_sec }}"
