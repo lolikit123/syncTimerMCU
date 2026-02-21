@@ -94,7 +94,7 @@ The system must be tested against:
 ## Current Status
 
 ### In progress / TODO
-- [ ] Define wire protocol frame format
+- [X] Define wire protocol frame format
 - [ ] Implement hardware timestamping at SPI transaction boundaries
 - [ ] Build Master and Slave sync state machines
 - [ ] Implement offset + delay estimation

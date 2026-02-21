@@ -30,7 +30,8 @@ jobs:
         run: ./scripts/build_debug_tests.sh
 
       - name: Flash
-        run: st-flash --connect-under-reset write stm32/app/buildD/app.bin 0x8000000
+        run: st-info --probe 
+            st-flash --connect-under-reset write stm32/app/buildD/app.bin 0x8000000
 
       - name: UART connect
         run: |
