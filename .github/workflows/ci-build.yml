@@ -1,0 +1,46 @@
+name: CI Build
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        variant: [debug_tests, release]
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            cmake make python3 gcc-arm-none-eabi binutils-arm-none-eabi
+
+      - name: Build debug tests
+        if: matrix.variant == 'debug_tests'
+        run: ./scripts/build_debug_tests.sh
+
+      - name: Build release
+        if: matrix.variant == 'release'
+        run: ./scripts/build_relase.sh
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.variant }}
+          path: |
+            stm32/app/buildD/app.elf
+            stm32/app/buildD/app.bin
+            stm32/app/buildD/app.map
+            stm32/app/buildR/app.elf
+            stm32/app/buildR/app.bin
+            stm32/app/buildR/app.map
