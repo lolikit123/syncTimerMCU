@@ -22,13 +22,13 @@ def main():
         ser.close()
 
     if not last:
-        sys.exit("FAIL: brak linii TB")
+        sys.exit("FAIL: no TB line")
 
     task_back, isr_back, task_samp, isr_samp = last
     if task_back != 0 or isr_back != 0:
         sys.exit(f"FAIL: backsteps task={task_back} isr={isr_back}")
     if task_samp <= 0 or isr_samp <= 0:
-        sys.exit("FAIL: sample counters nie rosną")
+        sys.exit("FAIL: sample counters dosen't increase")
 
     print(f"PASS: task_back={task_back} isr_back={isr_back} task_samp={task_samp} isr_samp={isr_samp}")
 
