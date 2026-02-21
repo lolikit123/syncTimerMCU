@@ -1,5 +1,7 @@
 # Build directories
 **/build/
+**/buildR/
+**/buildD/
 cmake-build-*/
 
 # CMake / Ninja generated
@@ -56,3 +58,6 @@ stm32/third_party/libopencm3/lib/**/*.a
 # OS junk
 .DS_Store
 Thumbs.db
+
+# Some notes
+Instruction.md

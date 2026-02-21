@@ -22,16 +22,28 @@ target_compile_definitions(freertos_config INTERFACE projCOVERAGE_TEST=0)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../third_party/FreeRTOS-Kernel
                  ${CMAKE_BINARY_DIR}/freertos-kernel)
 
-# libopencm3 musi być wcześniej zbudowane do lib/libopencm3_stm32f4.a
+# libopencm3 must be build first for lib/libopencm3_stm32f4.a
 add_library(opencm3_stm32f4 STATIC IMPORTED GLOBAL)
 set_target_properties(opencm3_stm32f4 PROPERTIES
     IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/../third_party/libopencm3/lib/libopencm3_stm32f4.a)
 
-add_executable(app.elf
+option(APP_ENABLE_TIMEBASE_TESTS "Enable timebase acceptance tests" OFF)
+
+set(APP_SOURCES
     src/main.c
+    src/timebase.c
 )
 
-target_compile_definitions(app.elf PRIVATE STM32F4)
+if(APP_ENABLE_TIMEBASE_TESTS)
+    list(APPEND APP_SOURCES src/Test.c)
+endif()
+
+add_executable(app.elf ${APP_SOURCES})
+
+target_compile_definitions(app.elf PRIVATE
+    STM32F4
+    APP_ENABLE_TIMEBASE_TESTS=$<BOOL:${APP_ENABLE_TIMEBASE_TESTS}>
+)
 target_include_directories(app.elf PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/include
     ${CMAKE_CURRENT_SOURCE_DIR}/../third_party/libopencm3/include

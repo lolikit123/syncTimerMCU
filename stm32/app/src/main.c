@@ -1,13 +1,19 @@
 #include <libopencm3/stm32/rcc.h>
 #include <libopencm3/stm32/gpio.h>
 #include <libopencm3/stm32/usart.h>
+#include "timebase.h"
+#include "Test.h"
 
 #include "FreeRTOS.h"
 #include "task.h"
 
+#ifndef APP_ENABLE_TIMEBASE_TESTS
+#define APP_ENABLE_TIMEBASE_TESTS 0
+#endif
+
 static void clock_setup(void)
 {
-    rcc_clock_setup_pll(&rcc_hsi_configs[RCC_CLOCK_3V3_84MHZ]);
+    rcc_clock_setup_pll(&rcc_hse_25mhz_3v3[RCC_CLOCK_3V3_84MHZ]);
 }
 
 static void gpio_setup(void)
@@ -46,7 +52,7 @@ static void hello_task(void *arg)
     (void)arg;
     for (;;) {
         gpio_toggle(GPIOC, GPIO13);
-        uart1_write_str("Hello from FreeRTOS on USART1\r\n");
+        //uart1_write_str("Hello from FreeRTOS on USART1\r\n");
         vTaskDelay(pdMS_TO_TICKS(1000));
     }
 }
@@ -56,6 +62,14 @@ int main(void)
     clock_setup();
     gpio_setup();
     usart1_setup();
+    timebase_init();
+    
+    
+    #if APP_ENABLE_TIMEBASE_TESTS
+    {
+        timebase_test_start();
+    }
+    #endif
 
     xTaskCreate(hello_task, "hello", 256, NULL, tskIDLE_PRIORITY + 1, NULL);
     vTaskStartScheduler();
