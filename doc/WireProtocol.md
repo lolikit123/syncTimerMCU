@@ -30,7 +30,8 @@
 **Bits 4-7:** Reserved.
 
 # 4.Type of messege and payload
-| **msg_type** | **Name** | **Payload**|
+| **msg_type** | **Name** | **Payload** |
+| ------------ | -------- | ----------- |
 | 0x01 | HELLO | node_id:u8, role:u8, boot_id:u32, caps:u16|
 | 0x10 | SYNC_REQ | t1_us:u64 |
 | 0x11 | SYNC_RESP | t1_us:u64, t2_us:u64, t3_us:u64 |
