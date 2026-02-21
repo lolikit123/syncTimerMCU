@@ -19,14 +19,19 @@
 | 10+N | crc16 | u16 | 2 | CRC from header+payload |
 
 *FRAME_MAX = 44 B(10B Header+32B payload + 2B CRC).*
+
 *CRC: CRC-16/CCITT-FALSE (poly=0x1021, init=0xFFFF, xrout=0x0000, without reflection).*
 
 # 3.Flags
 
 **Bit 0:** *ACK-REQ* request of accept.
+
 **Bit 1:** *RETRY* try send the same frame.
+
 **Bit 2:** *ERROR* sender send local error.
+
 **Bit 3:** *HOLDOVER* node in hold mode.
+
 **Bits 4-7:** Reserved.
 
 # 4.Type of messege and payload
@@ -81,6 +86,7 @@
  * For safe math use signed 64-bit.
 
 *Reject sample if CRC/seq is not valid or if delay_us is outlier.*
+
 *For clock steering use filtered offset (example: median + EMA).*
 
 # 7.Timeout/Retry/Sequence Validation
