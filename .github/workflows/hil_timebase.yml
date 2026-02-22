@@ -11,6 +11,18 @@ on:
         description: "Test in sec"
         required: true
         default: "60"
+      build_type:
+        description: "Build type"
+        required: true
+        type: choice
+        default: "debug"
+        options: [debug, release]
+      firmware_role:
+        description: "Firmware role"
+        required: true
+        type: choice
+        default: "master"
+        options: [master, slave]
 
 jobs:
   hil:
@@ -27,13 +39,25 @@ jobs:
           .venv/bin/python -m pip install pyserial
       
       - name: Build debug test
+        if: ${{ github.event.inputs.build_type == 'debug' }}
         run: ./scripts/build_debug_tests.sh
 
-      - name: Flash
-        run: st-info --probe 
-            st-flash --connect-under-reset write stm32/app/buildD/app.bin 0x8000000
+      - name: Build release
+        if: ${{ github.event.inputs.build_type == 'release' }}
+        run: ./scripts/build_relase.sh
 
-      - name: UART connect
+      - name: Flash selected firmware
+        run: |
+          if [ "${{ github.event.inputs.build_type }}" = "debug" ]; then
+            BUILD_DIR="buildD"
+          else
+            BUILD_DIR="buildR"
+          fi
+          st-info --probe
+          st-flash --connect-under-reset write "stm32/app/${BUILD_DIR}/app_${{ github.event.inputs.firmware_role }}.bin" 0x08000000
+
+      - name: UART timebase check (debug only)
+        if: ${{ github.event.inputs.build_type == 'debug' }}
         run: |
           .venv/bin/python scripts/hil_check_timebase.py \
             --port "${{ github.event.inputs.uart_port }}" \

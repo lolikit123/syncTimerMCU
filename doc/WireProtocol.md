@@ -1,9 +1,9 @@
 # 1.Assumptions
 
-###Transport time: only SPI, one frame on one window.
-###Endianness:little-endian for all manybites. (Little-endian is the default memory format for ARM processors)
-###Every frame: have seq_id, ack_seq, crc16. ()
-###Protocol should work determestic and lightweight(As specification said in README.md in Non-Functional Requirements).
+ * Transport time: only SPI, one frame on one window.
+ * Endianness:little-endian for all manybites. (Little-endian is the default memory format for ARM processors)
+ * Every frame: have seq_id, ack_seq, crc16. ()
+ * Protocol should work determestic and lightweight(As specification said in README.md in Non-Functional Requirements).
 
 # 2.Frame format
 | **Offset** | **Commands** | **Type** | **Size** | **Description** |
@@ -19,18 +19,24 @@
 | 10+N | crc16 | u16 | 2 | CRC from header+payload |
 
 *FRAME_MAX = 44 B(10B Header+32B payload + 2B CRC).*
+
 *CRC: CRC-16/CCITT-FALSE (poly=0x1021, init=0xFFFF, xrout=0x0000, without reflection).*
 
 # 3.Flags
 
 **Bit 0:** *ACK-REQ* request of accept.
+
 **Bit 1:** *RETRY* try send the same frame.
+
 **Bit 2:** *ERROR* sender send local error.
+
 **Bit 3:** *HOLDOVER* node in hold mode.
+
 **Bits 4-7:** Reserved.
 
 # 4.Type of messege and payload
-| **msg_type** | **Name** | **Payload**|
+| **msg_type** | **Name** | **Payload** |
+| ------------ | -------- | ----------- |
 | 0x01 | HELLO | node_id:u8, role:u8, boot_id:u32, caps:u16|
 | 0x10 | SYNC_REQ | t1_us:u64 |
 | 0x11 | SYNC_RESP | t1_us:u64, t2_us:u64, t3_us:u64 |
@@ -40,9 +46,9 @@
 
 ## 4.1 Why msg_type numbers like this
 
-###This is not hardware requirement, this is protocol design choice.
-###0x00 is as reserved/invalid for wrong/not response.
-###NACK = 0x7F as special error/fallback code, for me it's gonna be easy to spot.
+ * This is not hardware requirement, this is protocol design choice.
+ * 0x00 is as reserved/invalid for wrong/not response.
+ * NACK = 0x7F as special error/fallback code, for me it's gonna be easy to spot.
 
 ## 4.2 msg_type ranges for future grow
 
@@ -67,35 +73,36 @@
 
 # 5.Definition od timestmap t1-t4
 
-###**t1**: Master timestamp on *CS falling edge* with tansition of *SYNC_REQ*.
-###**t2**: Slave timestamp on RX-complete (ISR/DMA complete) for that *SYNC_REQ*.
-###**t3**: Slave timestamp on *CS falling edge* with transition of response *SYNC_RESP*.
-###**t4**: Master timestamp on RX-complete frame *SYNC_RESP*.
+ * **t1**: Master timestamp on *CS falling edge* with tansition of *SYNC_REQ*.
+ * **t2**: Slave timestamp on RX-complete (ISR/DMA complete) for that *SYNC_REQ*.
+ * **t3**: Slave timestamp on *CS falling edge* with transition of response *SYNC_RESP*.
+ * **t4**: Master timestamp on RX-complete frame *SYNC_RESP*.
 
 # 6.Calculation of offset/delay
 
-###Master calculate when recieve *SYNC_RESP* and has *t4* from local capture.
-###offset_us = ((t2 - t1) - (t4 - t3)) / 2
-###delay_us = ((t2 - t1) + (t4 - t3)) / 2
-###For safe math use signed 64-bit.
+ * Master calculate when recieve *SYNC_RESP* and has *t4* from local capture.
+ * offset_us = ((t2 - t1) - (t4 - t3)) / 2
+ * delay_us = ((t2 - t1) + (t4 - t3)) / 2
+ * For safe math use signed 64-bit.
 
 *Reject sample if CRC/seq is not valid or if delay_us is outlier.*
+
 *For clock steering use filtered offset (example: median + EMA).*
 
 # 7.Timeout/Retry/Sequence Validation
 
-###T_RESP_TIMEOUT = max(8000us, 4*slot_period_us).
-###MAX_RETRY = 3 for same seq_id with *RETRY* bit.
-###After MAX_RETRY node go to *HOLDOVER*.
-###Duplicate frame accept only when seq_id = last_seq_id and RETRY=1.
-###Bad crc16 or bad payload_len for msg_type drop frame and send *NACK*.
-###ack_seq should be monotonic increase, if not then sequence error or peer reset.
+ * T_RESP_TIMEOUT = max(8000us, 4*slot_period_us).
+ * MAX_RETRY = 3 for same seq_id with *RETRY* bit.
+ * After MAX_RETRY node go to *HOLDOVER*.
+ * Duplicate frame accept only when seq_id = last_seq_id and RETRY=1.
+ * Bad crc16 or bad payload_len for msg_type drop frame and send *NACK*.
+ * ack_seq should be monotonic increase, if not then sequence error or peer reset.
 
 # 8.States
 
-###Master states: *BOOT -> ACQUIRE -> TRACKING -> HOLDOVER*.
-###Slave states: *BOOT -> LISTEN -> TRACKING -> HOLDOVER*.
-###Exit form *HOLDOVER*: min. 3 more fix of probe *SYNC_RESP*.
+ * Master states: *BOOT -> ACQUIRE -> TRACKING -> HOLDOVER*.
+ * Slave states: *BOOT -> LISTEN -> TRACKING -> HOLDOVER*.
+ * Exit form *HOLDOVER*: min. 3 more fix of probe *SYNC_RESP*.
 
 # 9.Error NACK
 | **err_code** | **Name** | **Description** |

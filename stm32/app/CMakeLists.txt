@@ -29,6 +29,13 @@ set_target_properties(opencm3_stm32f4 PROPERTIES
 
 option(APP_ENABLE_TIMEBASE_TESTS "Enable timebase acceptance tests" OFF)
 
+option(APP_BUILD_MASTER "Build master firmware" ON)
+option(APP_BUILD_SLAVE  "Build slave firmware" ON)
+
+if(NOT APP_BUILD_MASTER AND NOT APP_BUILD_SLAVE)
+    message(FATAL_ERROR "Enable at least one role: APP_BUILD_MASTER or APP_BUILD_SLAVE")
+endif()
+
 set(APP_SOURCES
     src/main.c
     src/timebase.c
@@ -38,31 +45,48 @@ if(APP_ENABLE_TIMEBASE_TESTS)
     list(APPEND APP_SOURCES src/Test.c)
 endif()
 
-add_executable(app.elf ${APP_SOURCES})
+function(add_role_target role role_define)
+    set(target "app_${role}")
 
-target_compile_definitions(app.elf PRIVATE
-    STM32F4
-    APP_ENABLE_TIMEBASE_TESTS=$<BOOL:${APP_ENABLE_TIMEBASE_TESTS}>
-)
-target_include_directories(app.elf PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
-    ${CMAKE_CURRENT_SOURCE_DIR}/../third_party/libopencm3/include
-)
+    add_executable(${target} ${APP_SOURCES})
+    set_target_properties(${target} PROPERTIES OUTPUT_NAME "app_${role}.elf")
 
-target_link_options(app.elf PRIVATE
-    -T${CMAKE_CURRENT_SOURCE_DIR}/linker/stm32f411ceu6.ld
-    -Wl,-Map=${CMAKE_BINARY_DIR}/app.map
-    -nostartfiles
-)
+    target_compile_definitions(${target} PRIVATE
+        STM32F4
+        ${role_define}=1
+        APP_ENABLE_TIMEBASE_TESTS=$<BOOL:${APP_ENABLE_TIMEBASE_TESTS}>
+    )
 
-target_link_libraries(app.elf PRIVATE
-    freertos_kernel
-    freertos_config
-    opencm3_stm32f4
-    c m gcc nosys
-)
+    target_include_directories(${target} PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../third_party/libopencm3/include
+    )
 
-add_custom_command(TARGET app.elf POST_BUILD
-    COMMAND arm-none-eabi-objcopy -O binary $<TARGET_FILE:app.elf> ${CMAKE_BINARY_DIR}/app.bin
-    COMMAND arm-none-eabi-size $<TARGET_FILE:app.elf>
-)
+    target_link_options(${target} PRIVATE
+        -T${CMAKE_CURRENT_SOURCE_DIR}/linker/stm32f411ceu6.ld
+        -Wl,-Map=${CMAKE_BINARY_DIR}/app_${role}.map
+        -nostartfiles
+    )
+
+    target_link_libraries(${target} PRIVATE
+        freertos_kernel
+        freertos_config
+        opencm3_stm32f4
+        c m gcc nosys
+    )
+
+    add_custom_command(TARGET ${target} POST_BUILD
+        COMMAND arm-none-eabi-objcopy -O binary
+                $<TARGET_FILE:${target}>
+                ${CMAKE_BINARY_DIR}/app_${role}.bin
+        COMMAND arm-none-eabi-size $<TARGET_FILE:${target}>
+    )
+endfunction()
+
+if(APP_BUILD_MASTER)
+    add_role_target(master APP_ROLE_MASTER)
+endif()
+
+if(APP_BUILD_SLAVE)
+    add_role_target(slave APP_ROLE_SLAVE)
+endif()
