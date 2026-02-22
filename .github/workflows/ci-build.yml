@@ -38,9 +38,15 @@ jobs:
         with:
           name: ${{ matrix.variant }}
           path: |
-            stm32/app/buildD/app.elf
-            stm32/app/buildD/app.bin
-            stm32/app/buildD/app.map
-            stm32/app/buildR/app.elf
-            stm32/app/buildR/app.bin
-            stm32/app/buildR/app.map
+            stm32/app/buildD/app_master.elf
+            stm32/app/buildD/app_master.bin
+            stm32/app/buildD/app_master.map
+            stm32/app/buildD/app_slave.elf
+            stm32/app/buildD/app_slave.bin
+            stm32/app/buildD/app_slave.map
+            stm32/app/buildR/app_master.elf
+            stm32/app/buildR/app_master.bin
+            stm32/app/buildR/app_master.map
+            stm32/app/buildR/app_slave.elf
+            stm32/app/buildR/app_slave.bin
+            stm32/app/buildR/app_slave.map
