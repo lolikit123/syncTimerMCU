@@ -3,47 +3,119 @@ name: HIL Timebase
 on:
   workflow_dispatch:
     inputs:
-      uart_port:
-        description: "UART device path"
-        required: true
-        default: "/dev/ttyACM0"
       duration_sec:
-        description: "Test in sec"
+        description: "Test duration in sec"
         required: true
         default: "60"
-      firmware_role:
-        description: "Firmware role to flash"
-        required: true
-        default: "master"
-        type: choice
-        options:
-          - master
-          - slave
 
 jobs:
   hil:
     runs-on: [self-hosted, Linux, stm32-hil]
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        role: [master, slave]
+
     steps:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
-      
-      - name: Pythondeps
+
+      - name: Python deps
         run: |
           python3 -m venv .venv
           .venv/bin/python -m pip install --upgrade pip
           .venv/bin/python -m pip install pyserial
-      
-      - name: Build debug test
+
+      - name: Build debug tests
         run: ./scripts/build_debug_tests.sh
 
-      - name: Flash
-        run: |
-            st-info --probe
-            st-flash --connect-under-reset write "stm32/app/buildD/app_${{ github.event.inputs.firmware_role }}.bin" 0x08000000
+      - name: Resolve target automatically (serial + UART)
+        id: target
+        shell: bash
+        env:
+          ROLE: ${{ matrix.role }}
 
-      - name: UART connect
+          VAR_MASTER_SERIAL: ${{ vars.STLINK_MASTER_SERIAL }}
+          VAR_SLAVE_SERIAL: ${{ vars.STLINK_SLAVE_SERIAL }}
+
+          DEFAULT_MASTER_SERIAL: "066FFF575256867067032707"
+          DEFAULT_SLAVE_SERIAL: "066FFF555071494867024950"
+        run: |
+          set -euo pipefail
+
+          if [ "$ROLE" = "master" ]; then
+            SERIAL="${VAR_MASTER_SERIAL:-$DEFAULT_MASTER_SERIAL}"
+          else
+            SERIAL="${VAR_SLAVE_SERIAL:-$DEFAULT_SLAVE_SERIAL}"
+          fi
+
+          resolve_uart_from_serial() {
+            local serial="$1"
+            local p
+
+            # 1) Prefer stable links
+            shopt -s nullglob
+            for p in /dev/serial/by-id/*"${serial}"*if02* /dev/serial/by-id/*"${serial}"*if00* /dev/serial/by-id/*"${serial}"*; do
+              if [ -e "$p" ]; then
+                readlink -f "$p"
+                shopt -u nullglob
+                return 0
+              fi
+            done
+            shopt -u nullglob
+
+            # 2) Fallback: scan tty devices via udev
+            local dev props short ifnum
+            local best_dev=""
+            local best_prio=999
+            local prio=999
+
+            for dev in /dev/ttyACM* /dev/ttyUSB*; do
+              [ -e "$dev" ] || continue
+              props="$(udevadm info -q property -n "$dev" || true)"
+              short="$(printf '%s\n' "$props" | sed -n 's/^ID_SERIAL_SHORT=//p' | sed -n '1p')"
+              [ "$short" = "$serial" ] || continue
+
+              ifnum="$(printf '%s\n' "$props" | sed -n 's/^ID_USB_INTERFACE_NUM=//p' | sed -n '1p')"
+
+              # prefer: if02 > if00 > any
+              prio=50
+              [ "$ifnum" = "02" ] && prio=0
+              [ "$ifnum" = "00" ] && prio=10
+
+              if [ "$prio" -lt "$best_prio" ]; then
+                best_prio="$prio"
+                best_dev="$dev"
+              fi
+            done
+
+            [ -n "$best_dev" ] || return 1
+            echo "$best_dev"
+          }
+
+          UART_PORT="$(resolve_uart_from_serial "$SERIAL")" || {
+            echo "Cannot resolve UART for ST-Link serial: $SERIAL"
+            ls -la /dev/serial/by-id || true
+            exit 1
+          }
+
+          echo "stlink_serial=$SERIAL" >> "$GITHUB_OUTPUT"
+          echo "uart_port=$UART_PORT" >> "$GITHUB_OUTPUT"
+
+          echo "Using role: $ROLE"
+          echo "Using ST-Link serial: $SERIAL"
+          echo "Using UART port: $UART_PORT"
+
+      - name: Flash ${{ matrix.role }}
+        run: |
+          st-info --probe
+          st-flash --serial "${{ steps.target.outputs.stlink_serial }}" --connect-under-reset \
+            write "stm32/app/buildD/app_${{ matrix.role }}.bin" 0x08000000
+
+      - name: UART timebase check ${{ matrix.role }}
         run: |
           .venv/bin/python scripts/hil_check_timebase.py \
-            --port "${{ github.event.inputs.uart_port }}" \
+            --port "${{ steps.target.outputs.uart_port }}" \
             --duration "${{ github.event.inputs.duration_sec }}"

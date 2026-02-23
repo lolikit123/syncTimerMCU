@@ -1,17 +1,31 @@
 import argparse, re, sys, serial, time
 pat = re.compile(r"TB task_back=(\d+) isr_back=(\d+) task_samp=(\d+) isr_samp=(\d+)")
 
+def open_serial_with_retry(port: str, baud: int, wait_port_sec: int):
+    deadline = time.time() + wait_port_sec
+    last_exc = None
+    while time.time() < deadline:
+        try:
+            s = serial.Serial(port, baud, timeout=1)
+            s.reset_input_buffer()
+            return s
+        except (serial.SerialException, OSError, FileNotFoundError) as exc:
+            last_exc = exc
+            time.sleep(0.5)
+    raise SystemExit(f"FAIL: UART not ready after {wait_port_sec}s on {port}: {last_exc}")
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--port", default="/dev/ttyACM0")
     ap.add_argument("--baud", type=int, default=115200)
     ap.add_argument("--duration", type=int, default=60)
+    ap.add_argument("--wait-port-sec", type=int, default=30)
     args = ap.parse_args()
 
     last = None
-    t_end = time.time() + args.duration
 
-    ser = serial.Serial(args.port, args.baud, timeout=1)
+    ser = open_serial_with_retry(args.port, args.baud, args.wait_port_sec)
+    t_end = time.time() + args.duration
     try:
         while time.time() < t_end:
             line = ser.readline().decode(errors="ignore").strip()
