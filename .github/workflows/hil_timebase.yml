@@ -11,6 +11,14 @@ on:
         description: "Test in sec"
         required: true
         default: "60"
+      firmware_role:
+        description: "Firmware role to flash"
+        required: true
+        default: "master"
+        type: choice
+        options:
+          - master
+          - slave
 
 jobs:
   hil:
@@ -30,8 +38,9 @@ jobs:
         run: ./scripts/build_debug_tests.sh
 
       - name: Flash
-        run: st-info --probe 
-            st-flash --connect-under-reset write stm32/app/buildD/app.bin 0x8000000
+        run: |
+            st-info --probe
+            st-flash --connect-under-reset write "stm32/app/buildD/app_${{ github.event.inputs.firmware_role }}.bin" 0x08000000
 
       - name: UART connect
         run: |
