@@ -28,11 +28,8 @@ jobs:
           .venv/bin/python -m pip install --upgrade pip
           .venv/bin/python -m pip install pyserial
 
-      - name: Build debug tests slave
-        run: ./scripts/build_debug_tests.sh -DAPP_BUILD_SLAVE=ON
-
-      - name: Build debug tests master
-        run: ./scripts/build_debug_tests.sh -DAPP_BUILD_SLAVE=OFF
+      - name: Build debug tests
+        run: ./scripts/build_debug_tests.sh
 
       - name: Resolve target automatically (serial + UART)
         id: target
