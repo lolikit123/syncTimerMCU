@@ -53,7 +53,7 @@ static void hello_task(void *arg)
     for (;;) {
         gpio_toggle(GPIOC, GPIO13);
         //uart1_write_str("Hello from FreeRTOS on USART1\r\n");
-        vTaskDelay(pdMS_TO_TICKS(5000));
+        vTaskDelay(pdMS_TO_TICKS(500));
     }
 }
 
