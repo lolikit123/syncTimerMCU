@@ -2,7 +2,7 @@
 
  * Transport time: only SPI, one frame on one window.
  * Endianness:little-endian for all manybites. (Little-endian is the default memory format for ARM processors)
- * Every frame: have seq_id, ack_seq, crc16. ()
+ * Every frame: have seq_id, ack_seq, crc16.
  * Protocol should work determestic and lightweight(As specification said in README.md in Non-Functional Requirements).
 
 # 2.Frame format

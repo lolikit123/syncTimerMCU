@@ -2,7 +2,10 @@
 #include <libopencm3/stm32/gpio.h>
 #include <libopencm3/stm32/usart.h>
 #include "timebase.h"
-#include "Test.h"
+#if APP_ENABLE_TIMEBASE_TESTS
+{#include "Test.h"}
+#endif
+#include "spi_link.h"
 
 #include "FreeRTOS.h"
 #include "task.h"

@@ -39,6 +39,8 @@ endif()
 set(APP_SOURCES
     src/main.c
     src/timebase.c
+    src/wire_codec.c
+    src/spi_link.c
 )
 
 if(APP_ENABLE_TIMEBASE_TESTS)
