@@ -135,13 +135,15 @@ jobs:
             --port "${{ steps.target.outputs.uart_master }}" \
             --duration-phase1 "${{ github.event.inputs.duration_phase1 }}" \
             --duration-phase2 "${{ github.event.inputs.duration_phase2 }}" \
-            --duration-phase3 "${{ github.event.inputs.duration_phase3 }}"
-
-      - name: UART M1 check slave
-        run: |
+            --duration-phase3 "${{ github.event.inputs.duration_phase3 }}" &
+        PID_MASTER=$!
           .venv/bin/python scripts/hil_check_M1.py \
             --role slave \
             --port "${{ steps.target.outputs.uart_slave }}" \
             --duration-phase1 "${{ github.event.inputs.duration_phase1 }}" \
             --duration-phase2 "${{ github.event.inputs.duration_phase2 }}" \
-            --duration-phase3 "${{ github.event.inputs.duration_phase3 }}"
+            --duration-phase3 "${{ github.event.inputs.duration_phase3 }}" &
+        PID_SLAVE=$!
+        wait $PID_MASTER || exit 1
+        wait $PID_SLAVE || exit 1
+          
