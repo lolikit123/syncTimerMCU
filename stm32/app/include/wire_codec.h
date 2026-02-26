@@ -41,3 +41,6 @@ uint16_t wire_read_u16_le(const uint8_t *buf, size_t off);
 uint16_t wire_frame_total_len(uint8_t payload_len);
 
 void wire_sync_resp_set_t3(uint8_t *frame_buf, uint64_t t3_us);
+
+void wire_write_u16_le(uint8_t *buf, size_t off, uint16_t val);
+void wire_set_seq_id(uint8_t *frame_buf, uint16_t seq_id);

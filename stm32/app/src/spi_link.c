@@ -24,6 +24,8 @@
 #define LINK_PIN_MISO         GPIO6
 #define LINK_PIN_MOSI         GPIO7
 
+#define T_RESP_TIMEOUT          (8000u)
+
 #define EVQ_CAP               4u
 
 typedef struct {
@@ -42,6 +44,13 @@ typedef struct {
     spi_link_event_t evq[EVQ_CAP];
     volatile uint8_t evq_head;
     volatile uint8_t evq_tail;
+
+#if APP_ROLE_MASTER
+    uint16_t expected_seq_id;
+    volatile uint8_t last_transfer_ok;
+    volatile uint8_t last_result;
+    spi_link_event_t last_evt;
+#endif
 
 #if APP_ROLE_SLAVE
     volatile uint8_t resp_armed;
@@ -100,7 +109,7 @@ static void fill_event_metadata(spi_link_event_t *evt, const uint8_t *rx, uint8_
         memset(&evt->rx_buf[rx_len], 0, (size_t)(SPI_LINK_FRAME_MAX - rx_len));
     }
 
-    if (rx_len >= 6u) {
+    if (rx_len >= WIRE_FRAME_HDR_LEN) {
         evt->msg_type = wire_get_msg_type(rx);
         evt->seq_id = wire_get_seq_id(rx);
     } else {
@@ -125,9 +134,20 @@ static void finish_transfer_isr(void)
     }
 
     if (!wire_crc16_verify(g_ctx.rx_buf, (size_t)clipped)) {
+        #if APP_ROLE_MASTER
+              g_ctx.last_result = (uint8_t)SPI_LINK_RESULT_ERR_CRC;
+        #endif
+              g_ctx.busy = 0u;
+              return;
+          }
+
+#if APP_ROLE_MASTER
+    if (wire_get_seq_id(g_ctx.rx_buf) != g_ctx.expected_seq_id) {
+        g_ctx.last_result = (uint8_t)SPI_LINK_RESULT_ERR_SEQ;
         g_ctx.busy = 0u;
         return;
     }
+      #endif
 
     fill_event_metadata(&g_ctx.current, g_ctx.rx_buf, clipped);
 
@@ -138,6 +158,9 @@ static void finish_transfer_isr(void)
         g_ctx.resp_armed = 0u;
     }
 #else
+    g_ctx.last_evt = g_ctx.current;
+    g_ctx.last_result = (uint8_t)SPI_LINK_RESULT_OK;
+    g_ctx.last_transfer_ok = 1u;
     queue_push_isr(&g_ctx.current);
 #endif
 
@@ -227,6 +250,8 @@ bool spi_link_master_start_txrx(const uint8_t *tx, uint8_t len)
     g_ctx.current.msg_type = 0u;
     g_ctx.current.seq_id = 0xFFFFu;
     g_ctx.current.rx_len = 0u;
+    g_ctx.expected_seq_id = wire_get_seq_id(g_ctx.tx_buf);
+    g_ctx.last_transfer_ok = 0u;
 
     gpio_clear(LINK_PORT, LINK_PIN_CS);
     g_ctx.current.ts_cs_fall_us = timebase_now_us();
@@ -339,6 +364,12 @@ void spi1_isr(void)
     }
 
     uint8_t in = spi_read8(LINK_SPI);
+    uint64_t now = timebase_now_us();
+    uint64_t elapsed = now - g_ctx.current.ts_cs_fall_us;
+    if (elapsed > (uint64_t)T_RESP_TIMEOUT) {
+        transfer_timeout();
+        return;
+    }
 
     if (!g_ctx.busy) {
         (void)in;
@@ -394,4 +425,89 @@ void spi1_isr(void)
         finish_transfer_isr();
     }
 #endif
+}
+
+static void transfer_timeout(void){
+    spi_disable_rx_buffer_not_empty_interrupt(LINK_SPI);
+
+#if APP_ROLE_MASTER
+    gpio_set(LINK_PORT, LINK_PIN_CS);
+    g_ctx.last_result = (uint8_t)SPI_LINK_RESULT_ERR_TIMEOUT;
+    g_ctx.last_transfer_ok = 0u;
+#endif
+
+    g_ctx.busy = 0u;
+}
+
+void spi_link_check_timeout(void)
+{
+    if (!g_ctx.busy) {
+        return;
+    }
+    if (g_ctx.current.ts_cs_fall_us == 0u) {
+        return;
+    }
+    uint64_t now = timebase_now_us();
+    uint64_t elapsed = now - g_ctx.current.ts_cs_fall_us;
+    if (elapsed > (uint64_t)T_RESP_TIMEOUT) {
+        transfer_timeout(); 
+    }
+}
+
+#if APP_ROLE_MASTER
+bool spi_link_master_txrx_with_retry(const uint8_t *tx, uint8_t len, uint8_t max_retries,
+                                     spi_link_event_t *out, spi_link_result_t *result)
+{
+    if ((tx == NULL) || (len == 0u) || (len > SPI_LINK_FRAME_MAX) || (out == NULL)) {
+        if (result != NULL) {
+            *result = SPI_LINK_RESULT_ERR_ARG;
+        }
+        return false;
+    }
+    if (max_retries > 5u) {
+        max_retries = 5u;
+    }
+
+    for (uint8_t attempt = 0u; attempt <= max_retries; attempt++) {
+        g_ctx.last_transfer_ok = 0u;
+        if (!spi_link_master_start_txrx(tx, len)) {
+            if (result != NULL) {
+                *result = SPI_LINK_RESULT_ERR_BUSY;
+            }
+            return false;
+        }
+        while (g_ctx.busy && !g_ctx.last_transfer_ok) {
+            spi_link_check_timeout();
+        }
+        if (g_ctx.last_transfer_ok) {
+            *out = g_ctx.last_evt;
+            g_ctx.last_transfer_ok = 0u;
+            if (result != NULL) {
+                *result = SPI_LINK_RESULT_OK;
+            }
+            return true;
+        }
+    }
+
+    if (result != NULL) {
+        *result = (spi_link_result_t)g_ctx.last_result;
+    }
+    return false;
+}
+#endif
+
+uint8_t spi_link_result_to_byte(spi_link_result_t r)
+{
+    return (uint8_t)r;
+}
+
+const char *spi_link_result_string(spi_link_result_t r)
+{
+    static const char *const s[] = {
+        "OK", "TIMEOUT", "CRC", "SEQ", "RETRIES", "BUSY", "ARG"
+    };
+    if ((unsigned)r >= (unsigned)SPI_LINK_RESULT_COUNT) {
+        return "?";
+    }
+    return s[r];
 }

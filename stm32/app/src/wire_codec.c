@@ -72,3 +72,11 @@ void wire_sync_resp_set_t3(uint8_t *frame_buf, uint64_t t3_us)
         p[i] = (uint8_t)(t3_us >> (8u * i));
     }
 }
+
+void wire_write_u16_le(uint8_t *buf, size_t off, uint16_t val) {
+    buf[off]     = (uint8_t)(val & 0xFFu);
+    buf[off + 1] = (uint8_t)((val >> 8) & 0xFFu);
+}
+void wire_set_seq_id(uint8_t *frame_buf, uint16_t seq_id) {
+    wire_write_u16_le(frame_buf, WIRE_OFF_SEQ_ID, seq_id);
+}

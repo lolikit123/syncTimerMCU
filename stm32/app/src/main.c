@@ -3,7 +3,7 @@
 #include <libopencm3/stm32/usart.h>
 #include "timebase.h"
 #if APP_ENABLE_TIMEBASE_TESTS
-{#include "Test.h"}
+#include "Test.h"
 #endif
 #include "spi_link.h"
 

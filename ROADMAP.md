@@ -6,7 +6,7 @@
 - [x] monotonic microsecond timebase on all nodes
 - [x] timestamp capture at SPI transaction boundaries (CS edge / ISR entry / DMA completion)
 - [x] SPI frame format defined (`sync_word`, `seq_id`, `msg_type`, payload, `crc16`)
-- [ ] timeout, sequence validation, and retry policy implemented
+- [x] timeout, sequence validation, and retry policy implemented
 
 ## Milestone M2 - Sync Protocol v1 (Master-Slave, 2 nodes)
 **Goal:** basic synchronization over SPI using 2-way timestamp exchange.  
