@@ -13,7 +13,6 @@ jobs:
       fail-fast: false
       matrix:
         variant: [debug_tests, release]
-        role: [master, slave]
 
     steps:
       - uses: actions/checkout@v4
