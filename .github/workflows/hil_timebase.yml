@@ -107,12 +107,12 @@ jobs:
             ls -la /dev/serial/by-id || true
             exit 1
           }
-          
+
           echo "stlink_master=$MASTER_SERIAL" >> "$GITHUB_OUTPUT"
           echo "uart_master=$UART_MASTER" >> "$GITHUB_OUTPUT"
           echo "stlink_slave=$SLAVE_SERIAL" >> "$GITHUB_OUTPUT"
           echo "uart_slave=$UART_SLAVE" >> "$GITHUB_OUTPUT"
-          
+
           echo "Master ST-Link: $MASTER_SERIAL -> UART: $UART_MASTER"
           echo "Slave ST-Link: $SLAVE_SERIAL -> UART: $UART_SLAVE"
 
@@ -129,10 +129,12 @@ jobs:
             echo "Flashing $role..."
             st-flash --serial "$serial" --connect-under-reset \
               write "stm32/app/buildD/app_${role}.bin" 0x08000000
+            sleep 3
           done
 
       - name: UART M1 check master
         run: |
+          st-flash --serial "${{ steps.target.outputs.stlink_master }}" reset
           .venv/bin/python scripts/hil_check_M1.py \
             --role master \
             --port "${{ steps.target.outputs.uart_master }}" \
@@ -143,6 +145,7 @@ jobs:
 
       - name: UART M1 check slave
         run: |
+          st-flash --serial "${{ steps.target.outputs.stlink_slave }}" reset
           .venv/bin/python scripts/hil_check_M1.py \
             --role slave \
             --port "${{ steps.target.outputs.uart_slave }}" \
