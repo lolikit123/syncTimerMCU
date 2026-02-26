@@ -134,7 +134,7 @@ jobs:
 
       - name: UART M1 check master
         run: |
-          st-flash --serial "${{ steps.target.outputs.stlink_master }}" --conect-under-reset reset
+          st-flash --serial "${{ steps.target.outputs.stlink_master }}" reset
           .venv/bin/python scripts/hil_check_M1.py \
             --role master \
             --port "${{ steps.target.outputs.uart_master }}" \
@@ -145,7 +145,7 @@ jobs:
 
       - name: UART M1 check slave
         run: |
-          st-flash --serial "${{ steps.target.outputs.stlink_slave }}" --conect-under-reset reset
+          st-flash --serial "${{ steps.target.outputs.stlink_slave }}" reset
           .venv/bin/python scripts/hil_check_M1.py \
             --role slave \
             --port "${{ steps.target.outputs.uart_slave }}" \
