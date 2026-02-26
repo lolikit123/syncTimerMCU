@@ -23,11 +23,6 @@ on:
 jobs:
   hil:
     runs-on: [self-hosted, Linux, stm32-hil]
-    strategy:
-      fail-fast: false
-      max-parallel: 1
-      matrix:
-        role: [master, slave]
 
     steps:
       - uses: actions/checkout@v4
@@ -43,12 +38,10 @@ jobs:
       - name: Build debug tests
         run: ./scripts/build_debug_tests.sh
 
-      - name: Resolve target automatically (serial + UART)
+      - name: Resolve both targets automatically (serial + UART)
         id: target
         shell: bash
         env:
-          ROLE: ${{ matrix.role }}
-
           VAR_MASTER_SERIAL: ${{ vars.STLINK_MASTER_SERIAL }}
           VAR_SLAVE_SERIAL: ${{ vars.STLINK_SLAVE_SERIAL }}
 
@@ -57,11 +50,8 @@ jobs:
         run: |
           set -euo pipefail
 
-          if [ "$ROLE" = "master" ]; then
-            SERIAL="${VAR_MASTER_SERIAL:-$DEFAULT_MASTER_SERIAL}"
-          else
-            SERIAL="${VAR_SLAVE_SERIAL:-$DEFAULT_SLAVE_SERIAL}"
-          fi
+            MASTER_SERIAL="${VAR_MASTER_SERIAL:-$DEFAULT_MASTER_SERIAL}"
+            SLAVE_SERIAL="${VAR_SLAVE_SERIAL:-$DEFAULT_SLAVE_SERIAL}"
 
           resolve_uart_from_serial() {
             local serial="$1"
@@ -107,30 +97,54 @@ jobs:
             echo "$best_dev"
           }
 
-          UART_PORT="$(resolve_uart_from_serial "$SERIAL")" || {
-            echo "Cannot resolve UART for ST-Link serial: $SERIAL"
+          UART_PORT="$(resolve_uart_from_serial "$MASTER_SERIAL")" || {
+            echo "Cannot resolve UART for master ST-Link serial: $MASTER_SERIAL"
+            ls -la /dev/serial/by-id || true
+            exit 1
+          }
+          UART_PORT="$(resolve_uart_from_serial "$SLAVE_SERIAL")" || {
+            echo "Cannot resolve UART for slave ST-Link serial: $SLAVE_SERIAL"
             ls -la /dev/serial/by-id || true
             exit 1
           }
 
-          echo "stlink_serial=$SERIAL" >> "$GITHUB_OUTPUT"
-          echo "uart_port=$UART_PORT" >> "$GITHUB_OUTPUT"
+          echo "stlink_serial master/slave =$MASTER_SERIAL / $SLAVE_SERIAL" >> "$GITHUB_OUTPUT"
+          echo "uart_master=$UART_MASTER" >> "$GITHUB_OUTPUT"
+          echo "uart_SLAVE=$UART_SLAVE" >> "$GITHUB_OUTPUT"
 
-          echo "Using role: $ROLE"
-          echo "Using ST-Link serial: $SERIAL"
-          echo "Using UART port: $UART_PORT"
+          echo "Master ST-Link: $MASTER_SERIAL -> UART: $UART_MASTER"
+          echo "Slave ST-Link: $SLAVE_SERIAL -> UART: $UART_SLAVE"
 
-      - name: Flash ${{ matrix.role }}
+      - name: Flash master and slave
+        env:
+          STLINK_MASTER: ${{ steps.target.outputs.stlink_master }}
+          STLINK_SLAVE: ${{ steps.target.outputs.stlink_slave }}
         run: |
+          set -euo pipefail
           st-info --probe
-          st-flash --serial "${{ steps.target.outputs.stlink_serial }}" --connect-under-reset \
-            write "stm32/app/buildD/app_${{ matrix.role }}.bin" 0x08000000
+          for role in master slave; do
+            serial_var="STLINK_$(echo "$role" | tr 'a-z' 'A-Z')"
+            serial="${!serial_var}"
+            echo "Flashing $role..."
+            st-flash --serial "$serial" --connect-under-reset \
+              write "stm32/app/buildD/app_${role}.bin" 0x08000000
+          done
 
-      - name: UART M1 check ${{ matrix.role }}
+      - name: UART M1 check master
         run: |
           .venv/bin/python scripts/hil_check_M1.py \
-            --role "${{ matrix.role }}" \
-            --port "${{ steps.target.outputs.uart_port }}" \
+            --role master \
+            --port "${{ steps.target.outputs.uart_master }}" \
+            --wait-ready-sec "${{ github.event.inputs.wait_ready_sec }}" \
+            --duration-phase1 "${{ github.event.inputs.duration_phase1 }}" \
+            --duration-phase2 "${{ github.event.inputs.duration_phase2 }}" \
+            --duration-phase3 "${{ github.event.inputs.duration_phase3 }}"
+
+      - name: UART M1 check slave
+        run: |
+          .venv/bin/python scripts/hil_check_M1.py \
+            --role slave \
+            --port "${{ steps.target.outputs.uart_slave }}" \
             --wait-ready-sec "${{ github.event.inputs.wait_ready_sec }}" \
             --duration-phase1 "${{ github.event.inputs.duration_phase1 }}" \
             --duration-phase2 "${{ github.event.inputs.duration_phase2 }}" \
