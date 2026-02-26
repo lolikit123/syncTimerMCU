@@ -27,7 +27,7 @@ add_library(opencm3_stm32f4 STATIC IMPORTED GLOBAL)
 set_target_properties(opencm3_stm32f4 PROPERTIES
     IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/../third_party/libopencm3/lib/libopencm3_stm32f4.a)
 
-option(APP_ENABLE_TIMEBASE_TESTS "Enable timebase acceptance tests" OFF)
+option(APP_ENABLE_TESTS "Enable timebase acceptance tests" OFF)
 
 option(APP_BUILD_MASTER "Build master firmware" ON)
 option(APP_BUILD_SLAVE  "Build slave firmware" ON)
@@ -45,7 +45,7 @@ set(APP_SOURCES
     src/sync_slave.c
 )
 
-if(APP_ENABLE_TIMEBASE_TESTS)
+if(APP_ENABLE_TESTS)
     list(APPEND APP_SOURCES src/Test.c)
 endif()
 
@@ -58,7 +58,7 @@ function(add_role_target role role_define)
     target_compile_definitions(${target} PRIVATE
         STM32F4
         ${role_define}=1
-        APP_ENABLE_TIMEBASE_TESTS=$<BOOL:${APP_ENABLE_TIMEBASE_TESTS}>
+        APP_ENABLE_TESTS=$<BOOL:${APP_ENABLE_TESTS}>
     )
 
     target_include_directories(${target} PRIVATE

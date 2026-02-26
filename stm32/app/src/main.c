@@ -1,17 +1,22 @@
+#include <string.h>
+#include <stdint.h>
+
 #include <libopencm3/stm32/rcc.h>
 #include <libopencm3/stm32/gpio.h>
 #include <libopencm3/stm32/usart.h>
 #include "timebase.h"
-#if APP_ENABLE_TIMEBASE_TESTS
+#if APP_ENABLE_TESTS
 #include "Test.h"
 #endif
+#include "wire_codec.h"
 #include "spi_link.h"
+#include "uart_log.h"
 
 #include "FreeRTOS.h"
 #include "task.h"
 
-#ifndef APP_ENABLE_TIMEBASE_TESTS
-#define APP_ENABLE_TIMEBASE_TESTS 0
+#ifndef APP_ENABLE_TESTS
+#define APP_ENABLE_TESTS 0
 #endif
 
 static void clock_setup(void)
@@ -43,11 +48,23 @@ static void usart1_setup(void)
     usart_enable(USART1);
 }
 
-static void uart1_write_str(const char *s)
+void uart1_write_str(const char *s)
 {
     while (*s) {
         usart_send_blocking(USART1, (uint16_t)*s++);
     }
+}
+
+void uart1_write_u64(uint64_t v)
+{
+    char buf[21];
+    int i = 20;
+    buf[i] = '\0';
+    do {
+        buf[--i] = (char)('0' + (v % 10u));
+        v /= 10u;
+    } while (v);
+    uart1_write_str(&buf[i]);
 }
 
 static void hello_task(void *arg)
@@ -66,15 +83,29 @@ int main(void)
     gpio_setup();
     usart1_setup();
     timebase_init();
+
+#if APP_ENABLE_TESTS && APP_ROLE_MASTER
+    spi_link_init_master();
+#endif
+#if APP_ENABLE_TESTS && APP_ROLE_SLAVE
+    spi_link_init_slave();
+#endif
     
     
-    #if APP_ENABLE_TIMEBASE_TESTS
+#if APP_ENABLE_TESTS
     {
         timebase_test_start();
     }
-    #endif
+#endif
 
     xTaskCreate(hello_task, "hello", 256, NULL, tskIDLE_PRIORITY + 1, NULL);
+#if APP_ENABLE_TESTS
+#if APP_ROLE_MASTER
+    uart1_write_str("M1_READY role=master\r\n");
+#else
+    uart1_write_str("M1_READY role=slave\r\n");
+#endif
+#endif
     vTaskStartScheduler();
 
     for (;;) {}

@@ -2,11 +2,23 @@ name: HIL Timebase
 
 on:
   workflow_dispatch:
-    inputs:
-      duration_sec:
-        description: "Test duration in sec"
-        required: true
-        default: "60"
+        inputs:
+          duration_phase1:
+            description: "Phase 1 timebase duration (sec)"
+            required: true
+            default: "60"
+          duration_phase2:
+            description: "Phase 2 timestamps duration (sec)"
+            required: true
+            default: "15"
+          duration_phase3:
+            description: "Phase 3 link duration (sec)"
+            required: true
+            default: "10"
+          wait_ready_sec:
+            description: "Max wait for M1_READY (sec)"
+            required: true
+            default: "30"
 
 jobs:
   hil:
@@ -114,8 +126,12 @@ jobs:
           st-flash --serial "${{ steps.target.outputs.stlink_serial }}" --connect-under-reset \
             write "stm32/app/buildD/app_${{ matrix.role }}.bin" 0x08000000
 
-      - name: UART timebase check ${{ matrix.role }}
+      - name: UART M1 check ${{ matrix.role }}
         run: |
-          .venv/bin/python scripts/hil_check_timebase.py \
+          .venv/bin/python scripts/hil_check_M1.py \
+            --role "${{ matrix.role }}" \
             --port "${{ steps.target.outputs.uart_port }}" \
-            --duration "${{ github.event.inputs.duration_sec }}"
+            --wait-ready-sec "${{ github.event.inputs.wait_ready_sec }}" \
+            --duration-phase1 "${{ github.event.inputs.duration_phase1 }}" \
+            --duration-phase2 "${{ github.event.inputs.duration_phase2 }}" \
+            --duration-phase3 "${{ github.event.inputs.duration_phase3 }}"

@@ -1,5 +1,8 @@
 #include "Test.h"
 #include "timebase.h"
+#include "uart_log.h"
+#include "sync_master.h"
+#include "sync_slave.h"
 
 #include "FreeRTOS.h"
 #include "task.h"
@@ -14,27 +17,6 @@ static volatile uint32_t g_task_backsteps = 0;
 static volatile uint32_t g_isr_backsteps = 0;
 static volatile uint32_t g_task_samples = 0;
 static volatile uint32_t g_isr_samples = 0;
-
-static void uart1_write_str(const char *s)
-{
-    while (*s) {
-        usart_send_blocking(USART1, (uint16_t)*s++);
-    }
-}
-
-static void uart1_write_u64(uint64_t v)
-{
-    char buf[21];
-    int i = 20;
-    buf[i] = '\0';
-
-    do {
-        buf[--i] = (char)('0' + (v % 10u));
-        v /= 10u;
-    } while (v);
-
-    uart1_write_str(&buf[i]);
-}
 
 void tim3_isr(void)
 {
@@ -118,4 +100,10 @@ void timebase_test_start(void)
 
     isr_load_timer_setup();
     xTaskCreate(timebase_test_task, "tbtest", 256, NULL, tskIDLE_PRIORITY + 2, NULL);
+#if APP_ROLE_MASTER
+    xTaskCreate(link_test_task_master, "linkm", 384, NULL, tskIDLE_PRIORITY + 2, NULL);
+#endif
+#if APP_ROLE_SLAVE
+    xTaskCreate(link_test_task_slave, "links", 384, NULL, tskIDLE_PRIORITY + 2, NULL);
+#endif
 }
