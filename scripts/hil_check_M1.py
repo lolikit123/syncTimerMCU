@@ -25,15 +25,6 @@ def open_serial_with_retry(port: str, baud: int, wait_port_sec: int):
     raise SystemExit(f"FAIL: UART not ready after {wait_port_sec}s on {port}: {last_exc}")
 
 
-def wait_for_ready(ser, timeout_sec: int) -> None:
-    deadline = time.time() + timeout_sec
-    while time.time() < deadline:
-        line = ser.readline().decode(errors="ignore").strip()
-        if READY_MARKER in line or "READY" in line:
-            return
-    raise SystemExit(f"FAIL: no {READY_MARKER} within {timeout_sec}s")
-
-
 def run_phase1_timebase(ser, duration_sec: int, role: str) -> None:
     last = None
     t_end = time.time() + duration_sec
@@ -92,7 +83,6 @@ def main():
     ap.add_argument("--baud", type=int, default=115200)
     ap.add_argument("--role", required=True, choices=["master", "slave"])
     ap.add_argument("--wait-port-sec", type=int, default=30)
-    ap.add_argument("--wait-ready-sec", type=int, default=30)
     ap.add_argument("--duration-phase1", type=int, default=60, help="Timebase phase (sec)")
     ap.add_argument("--duration-phase2", type=int, default=15, help="Timestamps phase (sec)")
     ap.add_argument("--duration-phase3", type=int, default=10, help="Link phase (sec)")
@@ -100,7 +90,6 @@ def main():
 
     ser = open_serial_with_retry(args.port, args.baud, args.wait_port_sec)
     try:
-        wait_for_ready(ser, args.wait_ready_sec)
         run_phase1_timebase(ser, args.duration_phase1, args.role)
         run_phase2_timestamps(ser, args.duration_phase2, args.role)
         run_phase3_link(ser, args.duration_phase3, args.role)

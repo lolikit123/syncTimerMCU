@@ -99,13 +99,6 @@ int main(void)
 #endif
 
     xTaskCreate(hello_task, "hello", 256, NULL, tskIDLE_PRIORITY + 1, NULL);
-#if APP_ENABLE_TESTS
-#if APP_ROLE_MASTER
-    uart1_write_str("M1_READY role=master\r\n");
-#else
-    uart1_write_str("M1_READY role=slave\r\n");
-#endif
-#endif
     vTaskStartScheduler();
 
     for (;;) {}
