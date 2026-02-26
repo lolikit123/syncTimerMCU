@@ -41,6 +41,8 @@ set(APP_SOURCES
     src/timebase.c
     src/wire_codec.c
     src/spi_link.c
+    src/sync_master.c
+    src/sync_slave.c
 )
 
 if(APP_ENABLE_TIMEBASE_TESTS)

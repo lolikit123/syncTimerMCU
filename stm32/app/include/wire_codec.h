@@ -4,11 +4,17 @@
 #include <stddef.h>
 
 // From WireProtocol.md
-#define SPI_LINK_FRAME_MAX      44u
 #define FRAME_HDR_LEN           10u
 #define FRAME_CRC_LEN           2u
 #define FRAME_MAX_PAYLOAD       32u
 #define FRAME_SYNC_WORD         0xA55Au
+
+#define WIRE_FRAME_HDR_LEN     FRAME_HDR_LEN
+#define WIRE_FRAME_CRC_LEN     FRAME_CRC_LEN
+#define WIRE_FRAME_MAX_PAYLOAD FRAME_MAX_PAYLOAD
+#define WIRE_SYNC_WORD         FRAME_SYNC_WORD
+#define WIRE_FRAME_MAX         (WIRE_FRAME_HDR_LEN + WIRE_FRAME_MAX_PAYLOAD + WIRE_FRAME_CRC_LEN)
+#define SPI_LINK_FRAME_MAX     WIRE_FRAME_MAX
 
 // Offsets
 #define WIRE_OFF_SYNC           0u
@@ -26,8 +32,6 @@
 // SYNC_RESP payload: t1 at 0, t2 at 8, t3 at 16.
 #define WIRE_SYNC_RESP_PAYLOAD_LEN  24u
 #define WIRE_SYNC_RESP_OFF_T3       16u
-
-#define SPI_LINK_FRAME_MAX       WIRE_FRAME_MAX
 
 uint16_t wire_crc16(const uint8_t *data, size_t len);
 void wire_crc16_append(uint8_t *data, size_t data_len);

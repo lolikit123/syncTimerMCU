@@ -24,6 +24,15 @@
 #define LINK_PIN_MISO         GPIO6
 #define LINK_PIN_MOSI         GPIO7
 
+/* Forward declaration: defined later in file */
+static void transfer_timeout(void);
+
+#if defined(STM32F4)
+/* F4 uses 16-bit spi_send/spi_read; wrap for 8-bit frame transfer */
+static inline void spi_send8(uint32_t spi, uint8_t data) { spi_send(spi, (uint16_t)data); }
+static inline uint8_t spi_read8(uint32_t spi) { return (uint8_t)(spi_read(spi) & 0xFFu); }
+#endif
+
 #define T_RESP_TIMEOUT          (8000u)
 
 #define EVQ_CAP               4u
@@ -92,7 +101,6 @@ static void spi_hw_common_init(void)
     gpio_set_af(LINK_PORT, LINK_AF, LINK_PIN_SCK | LINK_PIN_MISO | LINK_PIN_MOSI);
 
     spi_disable(LINK_SPI);
-    spi_reset(LINK_SPI);
     spi_set_full_duplex_mode(LINK_SPI);
     spi_set_unidirectional_mode(LINK_SPI);
     spi_set_clock_polarity_0(LINK_SPI);

@@ -39,7 +39,7 @@ MCUMaster/partition_table/
 MCUMaster/managed_components/
 MCUMaster/sdkconfig
 
-# libopencm3 generated files (poza build/)
+# libopencm3 generated files (outside build/)
 stm32/third_party/libopencm3/lib/**/*.d
 stm32/third_party/libopencm3/lib/**/*.a
 
