@@ -127,14 +127,14 @@ jobs:
             serial_var="STLINK_$(echo "$role" | tr 'a-z' 'A-Z')"
             serial="${!serial_var}"
             echo "Flashing $role..."
-            st-flash --conect-under-reset --serial "$serial" --connect-under-reset \
+            st-flash --serial "$serial" --connect-under-reset \
               write "stm32/app/buildD/app_${role}.bin" 0x08000000
             sleep 3
           done
 
       - name: UART M1 check master
         run: |
-          st-flash --conect-under-reset --serial "${{ steps.target.outputs.stlink_master }}" reset
+          st-flash --serial "${{ steps.target.outputs.stlink_master }}" --conect-under-reset reset
           .venv/bin/python scripts/hil_check_M1.py \
             --role master \
             --port "${{ steps.target.outputs.uart_master }}" \
@@ -145,7 +145,7 @@ jobs:
 
       - name: UART M1 check slave
         run: |
-          st-flash --conect-under-reset --serial "${{ steps.target.outputs.stlink_slave }}" reset
+          st-flash --serial "${{ steps.target.outputs.stlink_slave }}" --conect-under-reset reset
           .venv/bin/python scripts/hil_check_M1.py \
             --role slave \
             --port "${{ steps.target.outputs.uart_slave }}" \

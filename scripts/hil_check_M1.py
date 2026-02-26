@@ -18,7 +18,6 @@ def open_serial_with_retry(port: str, baud: int, wait_port_sec: int):
     while time.time() < deadline:
         try:
             s = serial.Serial(port, baud, timeout=1)
-            s.reset_input_buffer()
             return s
         except (serial.SerialException, OSError, FileNotFoundError) as exc:
             last_exc = exc
