@@ -128,7 +128,7 @@ jobs:
             sleep 3
           done
 
-      - name: UART M1 check master
+      - name: UART M1 check master and slave (parallel)
         run: |
           .venv/bin/python scripts/hil_check_M1.py \
             --role master \
@@ -136,14 +136,14 @@ jobs:
             --duration-phase1 "${{ github.event.inputs.duration_phase1 }}" \
             --duration-phase2 "${{ github.event.inputs.duration_phase2 }}" \
             --duration-phase3 "${{ github.event.inputs.duration_phase3 }}" &
-        PID_MASTER=$!
+          PID_MASTER=$!
           .venv/bin/python scripts/hil_check_M1.py \
             --role slave \
             --port "${{ steps.target.outputs.uart_slave }}" \
             --duration-phase1 "${{ github.event.inputs.duration_phase1 }}" \
             --duration-phase2 "${{ github.event.inputs.duration_phase2 }}" \
             --duration-phase3 "${{ github.event.inputs.duration_phase3 }}" &
-        PID_SLAVE=$!
-        wait $PID_MASTER || exit 1
-        wait $PID_SLAVE || exit 1
+          PID_SLAVE=$!
+          wait $PID_MASTER || exit 1
+          wait $PID_SLAVE || exit 1
           
