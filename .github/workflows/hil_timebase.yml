@@ -97,21 +97,22 @@ jobs:
             echo "$best_dev"
           }
 
-          UART_PORT="$(resolve_uart_from_serial "$MASTER_SERIAL")" || {
+          UART_MASTER="$(resolve_uart_from_serial "$MASTER_SERIAL")" || {
             echo "Cannot resolve UART for master ST-Link serial: $MASTER_SERIAL"
             ls -la /dev/serial/by-id || true
             exit 1
           }
-          UART_PORT="$(resolve_uart_from_serial "$SLAVE_SERIAL")" || {
+          UART_SLAVE="$(resolve_uart_from_serial "$SLAVE_SERIAL")" || {
             echo "Cannot resolve UART for slave ST-Link serial: $SLAVE_SERIAL"
             ls -la /dev/serial/by-id || true
             exit 1
           }
-
-          echo "stlink_serial master/slave =$MASTER_SERIAL / $SLAVE_SERIAL" >> "$GITHUB_OUTPUT"
+          
+          echo "stlink_master=$MASTER_SERIAL" >> "$GITHUB_OUTPUT"
           echo "uart_master=$UART_MASTER" >> "$GITHUB_OUTPUT"
-          echo "uart_SLAVE=$UART_SLAVE" >> "$GITHUB_OUTPUT"
-
+          echo "stlink_slave=$SLAVE_SERIAL" >> "$GITHUB_OUTPUT"
+          echo "uart_slave=$UART_SLAVE" >> "$GITHUB_OUTPUT"
+          
           echo "Master ST-Link: $MASTER_SERIAL -> UART: $UART_MASTER"
           echo "Slave ST-Link: $SLAVE_SERIAL -> UART: $UART_SLAVE"
 
