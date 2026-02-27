@@ -351,6 +351,7 @@ void exti4_isr(void)
         (wire_read_u16_le(g_ctx.tx_buf, WIRE_OFF_SYNC) == WIRE_SYNC_WORD)) 
         {
         wire_sync_resp_set_t3(g_ctx.tx_buf, g_ctx.current.ts_cs_fall_us);
+        wire_crc16_append(g_ctx.tx_buf, (size_t)(g_ctx.tx_len - 2));
         }
     } else {
         g_ctx.tx_is_response = 0u;

@@ -35,14 +35,16 @@ void link_test_task_master(void *arg)
 
         spi_link_event_t evt;
         spi_link_result_t result;
-        spi_link_master_txrx_with_retry(tx_buf, sync_req_len,
+        bool ok = spi_link_master_txrx_with_retry(tx_buf, sync_req_len,
             LINK_DEFAULT_MAX_RETRIES, &evt, &result);
 
-        uart1_write_str("TS role=master cs=");
-        uart1_write_u64(evt.ts_cs_fall_us);
-        uart1_write_str(" rx_done=");
-        uart1_write_u64(evt.ts_rx_done_us);
-        uart1_write_str("\r\n");
+        if (ok && result == SPI_LINK_RESULT_OK) {
+            uart1_write_str("TS role=master cs=");
+            uart1_write_u64(evt.ts_cs_fall_us);
+            uart1_write_str(" rx_done=");
+            uart1_write_u64(evt.ts_rx_done_us);
+            uart1_write_str("\r\n");
+        }
         uart1_write_str("LINK role=master result=");
         uart1_write_str(spi_link_result_string(result));
         uart1_write_str("\r\n");

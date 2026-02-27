@@ -70,6 +70,11 @@ def run_phase3_link(ser, duration_sec: int, role: str) -> None:
         line = ser.readline().decode(errors="ignore").strip()
         if role == "master" and PAT_LINK_MASTER.search(line):
             link_lines.append(line)
+            m =PAT_LINK_MASTER.search(line)
+            if m:
+                result = m.group(1)
+                if result != "OK":
+                    sys.exit(f"FAIL: phase3 link - result={result}, expect OK")
         elif role == "slave" and PAT_LINK_SLAVE.search(line):
             link_lines.append(line)
     if not link_lines:
